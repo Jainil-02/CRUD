@@ -1,23 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Container, Typography, Paper, Snackbar, Box } from "@mui/material";
 import { purple, teal, orange, pink } from "@mui/material/colors";
 import ProductForm from "./components/ProductForm";
 import ProductList from "./components/ProductList";
 import SearchBar from "./components/SearchBar";
 
-import {
-  getProducts,
-  createProduct,
-  editProduct,
-  removeProduct,
-} from "./services/api"; // API call to fetch products
+import { getProducts, editProduct, removeProduct } from "./services/api"; // API call to fetch products
 
 export default function App() {
   const [apiProducts, setApiProducts] = useState([]); // products from API
   const [localProducts, setLocalProducts] = useState([]); // products added locally
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
   const [openSnackbar, setOpenSnackbar] = useState(false);
+
+  const formRef = useRef();
+
+  const showSnack = (msg) => {
+    setSnackbarMessage(msg);
+    setOpenSnackbar(true);
+  };
 
   useEffect(() => {
     async function fetchProducts() {
@@ -34,7 +37,9 @@ export default function App() {
   }, []);
 
   // Add product locally
-  const handleAddProduct = (data) => {
+  const handleAddProduct = (data, msg) => {
+      if(!data) return showSnack("Image required");
+
     const newProduct = { ...data, id: Date.now() };
     const updatedLocalProducts = [newProduct, ...localProducts];
 
@@ -42,8 +47,12 @@ export default function App() {
     setFilteredProducts([...apiProducts, ...updatedLocalProducts]);
     localStorage.setItem("products", JSON.stringify(updatedLocalProducts));
     setOpenSnackbar(true);
+    showSnack("Product added");
+
   };
-  const handleUpdateProduct = async (data) => {
+  const handleUpdateProduct = async (data, msg) => {
+      if(!data) return showSnack("Image required");
+
     if (editingProduct.source === "api") {
       await editProduct(editingProduct.id, data); // call backend
       const updatedApiProducts = apiProducts.map((p) =>
@@ -60,6 +69,8 @@ export default function App() {
       localStorage.setItem("products", JSON.stringify(updatedLocalProducts));
     }
     setEditingProduct(null);
+    showSnack("Product updated");
+
   };
 
   const handleDeleteProduct = async (id) => {
@@ -76,7 +87,16 @@ export default function App() {
       setFilteredProducts([...apiProducts, ...updatedLocalProducts]);
       localStorage.setItem("products", JSON.stringify(updatedLocalProducts));
     }
+      showSnack("Product deleted");
   };
+
+  const handleEditClick = (product) => {
+  setEditingProduct(product);
+  setTimeout(() => {
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 200);
+};
+
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4 }}>
@@ -97,27 +117,30 @@ export default function App() {
         </Typography>
       </Box>
       <Paper
-        sx={{
-          p: 3,
-          mb: 3,
-          border: `3px solid ${pink[300]}`,
-          backgroundColor: "#fef6ff",
-        }}
+      // sx={{
+      //   p: 3,
+      //   mb: 3,
+      //   border: `3px solid ${pink[300]}`,
+      //   backgroundColor: "#fef6ff",
+      // }}
       >
-        <ProductForm
-          onSubmit={editingProduct ? handleUpdateProduct : handleAddProduct}
-          editingProduct={editingProduct}
-        />
+        <div ref={formRef}>
+          <ProductForm
+            onSubmit={editingProduct ? handleUpdateProduct : handleAddProduct}
+            editingProduct={editingProduct}
+            onNotify={showSnack}
+          />
+        </div>
       </Paper>
 
       <Paper
-        sx={{
-          mb: 3,
-          p: 2,
-          borderRadius: 2,
-          backgroundColor: teal[50],
-          border: `2px dashed ${teal[200]}`,
-        }}
+      // sx={{
+      //   mb: 3,
+      //   p: 2,
+      //   borderRadius: 2,
+      //   backgroundColor: teal[50],
+      //   border: `2px dashed ${teal[200]}`,
+      // }}
       >
         <SearchBar
           products={[...apiProducts, ...localProducts]}
@@ -127,16 +150,25 @@ export default function App() {
 
       <ProductList
         products={filteredProducts}
-        onEdit={setEditingProduct}
+        onEdit={handleEditClick}
         onDelete={handleDeleteProduct}
       />
 
       <Snackbar
-        open={openSnackbar}
-        autoHideDuration={3000}
-        message="Product added successfully"
-        onClose={() => setOpenSnackbar(false)}
-      />
+  open={openSnackbar}
+  autoHideDuration={2500}
+  onClose={() => setOpenSnackbar(false)}
+  message={snackbarMessage}
+  anchorOrigin={{ vertical: "top", horizontal: "center" }}
+  sx={{
+    "& .MuiSnackbarContent-root": {
+      background: "#181818",
+      color: "#fff",
+      fontSize: "15px"
+    }
+  }}
+/>
+
     </Container>
   );
 }

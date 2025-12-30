@@ -1,0 +1,64 @@
+.product-card {
+  max-width: auto;
+  margin: 40px auto;
+  background: #ffffff;
+  padding: 30px;
+  border-radius: 18px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+  font-family: "Inter", sans-serif;
+}
+
+.form-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Upload Box */
+.upload-box {
+  border: 2px dashed #ffb07c;
+  border-radius: 14px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 0.3s;
+  text-align: center;
+  background: #fff7f1;
+}
+
+.upload-box:hover {
+  background: #fff3e8;
+}
+
+.upload-text p { font-size: 15px; font-weight: 600; margin: 8px 0; }
+.upload-text small { color: #666; }
+.upload-icon { font-size: 38px; opacity: 0.7; }
+
+.preview-img {
+  max-height: 100%;
+  border-radius: 10px;
+  object-fit: contain;
+}
+
+/* Price & Category side by side */
+.row {
+  display: flex;
+  gap: 12px;
+}
+
+/* Submit Button */
+.submit-btn {
+  background: linear-gradient(90deg, #ff8a30, #ff6a00);
+  color: #fff !important;
+  padding: 13px !important;
+  font-size: 16px !important;
+  border-radius: 10px !important;
+  text-transform: none !important;
+  font-weight: 600 !important;
+}
+
+.submit-btn:hover {
+  opacity: 0.9;
+}

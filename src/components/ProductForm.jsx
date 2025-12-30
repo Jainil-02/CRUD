@@ -1,29 +1,26 @@
 import { useEffect, useState } from "react";
-import { TextField, Button, Stack } from "@mui/material";
+import { TextField, Button } from "@mui/material";
+import "./ProductForm.css"; // <-- important
 
 const initialState = {
   title: "",
   price: "",
   category: "",
   description: "",
-  image: null, // store image as Base64
+  image: null,
 };
 
 export default function ProductForm({ onSubmit, editingProduct }) {
   const [formData, setFormData] = useState(initialState);
 
   useEffect(() => {
-    if (editingProduct) {
-      setFormData(editingProduct);
-    } else {
-      setFormData(initialState);
-    }
+    if (editingProduct) setFormData(editingProduct);
+    else setFormData(initialState);
   }, [editingProduct]);
 
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  // Resize and compress image before storing
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -35,22 +32,13 @@ export default function ProductForm({ onSubmit, editingProduct }) {
 
       img.onload = () => {
         const canvas = document.createElement("canvas");
-        const maxWidth = 200;
-        const maxHeight = 200;
-        let width = img.width;
-        let height = img.height;
+        const max = 300;
+        let { width, height } = img;
 
-        // Maintain aspect ratio
-        if (width > height) {
-          if (width > maxWidth) {
-            height *= maxWidth / width;
-            width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
-            width *= maxHeight / height;
-            height = maxHeight;
-          }
+        if (width > height ? width > max : height > max) {
+          const scale = max / (width > height ? width : height);
+          width *= scale;
+          height *= scale;
         }
 
         canvas.width = width;
@@ -58,7 +46,6 @@ export default function ProductForm({ onSubmit, editingProduct }) {
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Compress to JPEG ~70%
         const resizedBase64 = canvas.toDataURL("image/jpeg", 0.7);
         setFormData({ ...formData, image: resizedBase64 });
       };
@@ -68,96 +55,71 @@ export default function ProductForm({ onSubmit, editingProduct }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.image) {
-      alert("Please upload an image for the product.");
-      return;
+if (!formData.image) {
+  onSubmit(null, "Please upload an image"); // pass error message
+  return;
+}
+
+    const products = JSON.parse(localStorage.getItem("products")) || [];
+    if (editingProduct) {
+      const updated = products.map((p) =>
+        p.id === editingProduct.id ? { ...formData, id: p.id } : p
+      );
+      localStorage.setItem("products", JSON.stringify(updated));
+    } else {
+      products.push({ ...formData, id: Date.now() });
+      localStorage.setItem("products", JSON.stringify(products));
     }
 
-    try {
-      const products = JSON.parse(localStorage.getItem("products")) || [];
-
-      if (editingProduct) {
-        // Update existing product
-        const updatedProducts = products.map((p) =>
-          p.id === editingProduct.id ? { ...formData, id: p.id } : p
-        );
-        localStorage.setItem("products", JSON.stringify(updatedProducts));
-      } else {
-        // Add new product with unique id
-        const newProduct = { ...formData, id: Date.now() };
-        products.push(newProduct);
-        localStorage.setItem("products", JSON.stringify(products));
-      }
-
-      onSubmit(formData);
-      setFormData(initialState);
-    } catch (e) {
-      if (e.name === "QuotaExceededError") {
-        alert(
-          "Local storage is full! Please remove some products or use smaller images."
-        );
-      } else {
-        console.error(e);
-      }
-    }
+    onSubmit(formData);
+    setFormData(initialState);
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <Stack spacing={2}>
-        <TextField
-          label="Title"
-          name="title"
-          value={formData.title}
-          onChange={handleChange}
-          required
-        />
-        <TextField
-          label="Price"
-          name="price"
-          type="number"
-          value={formData.price}
-          onChange={handleChange}
-          required
-        />
-        <TextField
-          label="Category"
-          name="category"
-          value={formData.category}
-          onChange={handleChange}
-          required
-        />
-        <TextField
-          label="Description"
-          name="description"
-          value={formData.description}
-          onChange={handleChange}
-          multiline
-          rows={3}
-        />
+    <div className="product-card">
+      <form onSubmit={handleSubmit} className="form-wrapper">
 
-        <Button variant="contained" component="label">
-          {formData.image ? "Change Image" : "Upload Image"}
-          <input
-            type="file"
-            hidden
-            accept="image/*"
-            onChange={handleFileChange}
-          />
-        </Button>
+        {/* Image Upload Section */}
+        <label className="upload-box">
+          {formData.image ? (
+            <img src={formData.image} alt="Preview" className="preview-img" />
+          ) : (
+            <div className="upload-text">
+              <span className="upload-icon">📤</span>
+              <p>Click to Upload</p>
+              <small>PNG or JPG up to 10MB</small>
+            </div>
+          )}
+          <input type="file" accept="image/*" hidden onChange={handleFileChange} />
+        </label>
 
-        {formData.image && (
-          <img
-            src={formData.image}
-            alt="Preview"
-            style={{ maxWidth: "200px", marginTop: "10px" }}
-          />
-        )}
+        {/* Text Inputs */}
+        <TextField label="Product Title" name="title" value={formData.title} onChange={handleChange} fullWidth required sx={{borderRadius:"10px"}}/>
+        
+        <div className="row">
+<TextField
+  label="Price"
+  name="price"
+  type="number"
+  value={formData.price}
+  onChange={handleChange}
+  required
+  fullWidth
+  inputProps={{ min: 0 }}         // ⛔ prevents negative typing via UI
+  onInput={(e) => {              // extra guard
+    if (e.target.value < 0) e.target.value = "";
+  }}
+/>     
+     <TextField label="Category" name="category" value={formData.category} onChange={handleChange} required fullWidth />
+        </div>
 
-        <Button variant="contained" type="submit">
+        <TextField label="Description" name="description" value={formData.description} onChange={handleChange} fullWidth multiline rows={3} />
+
+        {/* Submit Button */}
+        <Button className="submit-btn" type="submit">
           {editingProduct ? "Update Product" : "Add Product"}
         </Button>
-      </Stack>
-    </form>
+      </form>
+    </div>
   );
 }
